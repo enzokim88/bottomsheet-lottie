@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주문서 — 퍼플 박스 미니 담기 프로토타입</title>
+<style>
+  :root{
+    --purple:#5F0080;
+    --purple-lite:#F4ECF8;
+    --ink:#333333;
+    --ink-2:#666666;
+    --ink-3:#A0A0A0;
+    --line:#EEEEEE;
+    --line-2:#DDDDDD;
+    --bg:#F7F7F7;
+    --stage:#2B2B30;
+    --red:#FA622F;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;background:var(--stage);
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    padding:28px 16px 60px;min-height:100vh;
+  }
+
+  /* ---- 프로토타입 컨트롤 ---- */
+  .ctrl{
+    width:100%;max-width:420px;margin-bottom:18px;color:#fff;
+  }
+  .ctrl h1{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em;}
+  .ctrl p{font-size:12.5px;color:#9C9CA6;margin:0 0 14px;line-height:1.5;}
+  .seg{display:flex;gap:6px;background:#3A3A42;padding:4px;border-radius:10px;}
+  .seg button{
+    flex:1;border:none;background:transparent;color:#B8B8C2;
+    font-size:12.5px;font-weight:600;padding:9px 6px;border-radius:7px;cursor:pointer;
+    font-family:inherit;line-height:1.35;
+  }
+  .seg button.on{background:#fff;color:#1A1A1E;}
+  .reset{
+    margin-top:8px;width:100%;border:1px solid #4A4A54;background:transparent;color:#9C9CA6;
+    font-size:12px;padding:8px;border-radius:8px;cursor:pointer;font-family:inherit;
+  }
+
+  /* ---- 폰 프레임 ---- */
+  .phone{
+    width:390px;max-width:100%;background:#fff;border-radius:26px;overflow:hidden;
+    position:relative;box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  .statusbar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;font-size:13px;font-weight:600;color:#000;
+  }
+  .statusbar .icons{display:flex;gap:5px;align-items:center;font-size:11px;letter-spacing:1px;}
+  .navbar{
+    height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;
+    font-size:16px;font-weight:600;border-bottom:1px solid var(--line);
+  }
+  .back{font-size:19px;color:#333;line-height:1;}
+
+  .scroll{max-height:560px;overflow-y:auto;background:#fff;padding-bottom:78px;}
+  .fade-top{
+    height:14px;background:linear-gradient(#fff,rgba(255,255,255,0));
+    margin-bottom:-14px;position:relative;z-index:2;
+  }
+
+  .sec{padding:16px 18px;border-bottom:8px solid #F7F7F7;}
+  .sec.thin{border-bottom:1px solid var(--line);}
+  .sec-head{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:15px;font-weight:700;margin-bottom:12px;
+  }
+  .chev{color:#999;font-size:13px;}
+
+  .addr{display:flex;gap:12px;align-items:flex-start;}
+  .addr .txt{flex:1;font-size:13.5px;line-height:1.5;color:var(--ink);}
+  .btn-sm{
+    flex:none;border:1px solid var(--line-2);background:#fff;border-radius:4px;
+    font-size:12px;padding:5px 11px;color:var(--ink-2);font-family:inherit;
+  }
+  .req .l1{font-size:13.5px;color:var(--ink);}
+  .req .l1 b{color:var(--purple);font-weight:600;}
+  .req .l2{font-size:12.5px;color:var(--ink-3);margin-top:3px;}
+
+  /* ---- 포장방법 옵션 ---- */
+  .opt{display:flex;align-items:center;gap:10px;padding:11px 0;cursor:pointer;}
+  .opt + .opt{border-top:1px solid #F4F4F4;}
+  .radio{
+    width:19px;height:19px;border-radius:50%;border:1.5px solid #CCC;flex:none;
+    position:relative;background:#fff;
+  }
+  .opt.on .radio{border:6px solid var(--purple);}
+  .opt .label{font-size:14px;color:var(--ink);display:flex;align-items:center;gap:7px;}
+  .opt.off{cursor:not-allowed;}
+  .opt.off .radio{border-color:#E4E4E4;background:#F7F7F7;}
+  .opt.off .label{color:#BDBDBD;}
+  .nudge{
+    font-size:10.5px;font-weight:600;color:var(--purple);background:var(--purple-lite);
+    padding:3px 7px;border-radius:4px;white-space:nowrap;
+  }
+  .opt.off .nudge{opacity:1;}
+  .hint{font-size:11.5px;color:var(--ink-3);margin-top:8px;line-height:1.5;}
+
+  /* ---- 함께 주문 카드 ---- */
+  .addcard{
+    display:flex;gap:11px;align-items:center;border:1px solid var(--line);
+    border-radius:8px;padding:11px;transition:border-color .18s, background .18s;
+  }
+  .addcard.sel{border-color:var(--purple);background:#FCFAFD;}
+  .cb{
+    width:20px;height:20px;border-radius:3px;border:1.5px solid #CFCFCF;flex:none;
+    background:#fff;position:relative;cursor:pointer;transition:all .15s;
+  }
+  .cb.on{background:#333;border-color:#333;}
+  .cb.on::after{
+    content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+  }
+  .thumb{
+    width:46px;height:46px;border-radius:6px;flex:none;position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#8B4FB0,#5F0080);
+  }
+  .thumb::after{
+    content:'';position:absolute;left:8px;right:8px;top:12px;height:4px;
+    background:rgba(255,255,255,.55);border-radius:2px;
+  }
+  .thumb::before{
+    content:'';position:absolute;left:14px;right:14px;top:5px;height:9px;
+    border:2px solid rgba(255,255,255,.55);border-bottom:none;border-radius:6px 6px 0 0;
+  }
+  .pinfo{flex:1;min-width:0;}
+  .pname{font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+  .tag{
+    font-size:10px;font-weight:700;color:#fff;background:var(--purple);
+    padding:2px 5px;border-radius:3px;
+  }
+  .price{font-size:13px;display:flex;align-items:center;gap:6px;}
+  .price .was{color:var(--ink-3);text-decoration:line-through;font-size:12px;}
+  .price .off{color:var(--red);font-weight:700;}
+  .price .now{font-weight:700;color:var(--ink);}
+
+  /* ---- 담는 중 ---- */
+  .dots{display:flex;justify-content:center;gap:5px;padding:10px 0;}
+  .dots span{
+    width:6px;height:6px;border-radius:50%;background:#C4C4C4;
+    animation:bounce 1s infinite ease-in-out;
+  }
+  .dots span:nth-child(2){animation-delay:.15s;}
+  .dots span:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+
+  .goods{font-size:13px;color:var(--ink-2);}
+
+  /* ---- 하단 CTA ---- */
+  .cta-wrap{
+    position:absolute;left:0;right:0;bottom:0;background:#fff;
+    padding:10px 16px 18px;border-top:1px solid var(--line);
+  }
+  .cta{
+    width:100%;background:var(--purple);color:#fff;border:none;border-radius:4px;
+    font-size:15px;font-weight:700;padding:15px 0;font-family:inherit;cursor:pointer;
+  }
+  .homebar{
+    width:120px;height:4px;background:#111;border-radius:2px;
+    margin:10px auto 0;opacity:.85;
+  }
+
+  /* ---- 스낵바 ---- */
+  .snack{
+    position:absolute;left:16px;right:16px;bottom:88px;
+    background:rgba(38,38,42,.94);color:#fff;font-size:13px;
+    padding:13px 15px;border-radius:6px;
+    opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;
+  }
+  .snack.show{opacity:1;transform:translateY(0);}
+
+  /* ---- 하단 설명 ---- */
+  .notes{
+    width:100%;max-width:420px;margin-top:20px;color:#9C9CA6;font-size:12px;line-height:1.65;
+  }
+  .notes b{color:#E2E2E8;}
+  .notes ul{margin:8px 0 0;padding-left:16px;}
+  .notes li{margin-bottom:5px;}
+</style>
+</head>
+<body>
+
+<div class="ctrl">
+  <h1>주문서 — 퍼플 박스 미니 담기</h1>
+  <p>진입 케이스를 고르고, '상품과 함께 주문해보세요'의 체크박스를 눌러보세요.</p>
+  <div class="seg">
+    <button id="tabA" class="on">구매이력 ✕ / 개인 보냉 ✕</button>
+    <button id="tabB">구매이력 ✕ / 개인 보냉 ○</button>
+  </div>
+  <button class="reset" id="reset">처음 상태로 되돌리기</button>
+</div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="icons">‧‖‖ ᯤ ▮</span>
+  </div>
+  <div class="navbar"><span class="back">‹</span><span>주문서</span></div>
+
+  <div class="scroll">
+    <div class="fade-top"></div>
+
+    <div class="sec thin">
+      <div class="addr">
+        <div class="txt">서울특별시 강남구 테헤란로 133<br>한국타이어빌딩 16층</div>
+        <button class="btn-sm">변경</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span>배송 요청사항</span></div>
+      <div class="addr req">
+        <div class="txt">
+          <div class="l1">문 앞 &nbsp; 공동현관 비밀번호(<b>*1234#</b>)</div>
+          <div class="l2">김컬리, 010-1234-5678</div>
+        </div>
+        <button class="btn-sm">수정</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span>포장 방법</span><span class="chev">⌃</span></div>
+
+      <!-- CASE A -->
+      <div id="caseA">
+        <div class="opt off">
+          <span class="radio"></span>
+          <span class="label">컬리 퍼플 박스 <span class="nudge">종이 박스를 줄여보세요</span></span>
+        </div>
+        <div class="opt on">
+          <span class="radio"></span>
+          <span class="label">종이 포장재</span>
+        </div>
+        <div class="hint">퍼플 박스를 구매하시면 다음 주문부터 선택하실 수 있어요.</div>
+      </div>
+
+      <!-- CASE B -->
+      <div id="caseB" style="display:none;">
+        <div class="opt" data-pick="paper">
+          <span class="radio"></span>
+          <span class="label">종이 포장재</span>
+        </div>
+        <div class="opt on" data-pick="cooler">
+          <span class="radio"></span>
+          <span class="label">개인 보냉 박스</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span>상품과 함께 주문해보세요</span><span class="chev">⌃</span></div>
+
+      <div id="loading" style="display:none;"><div class="dots"><span></span><span></span><span></span></div></div>
+
+      <div class="addcard" id="card">
+        <span class="cb" id="cb"></span>
+        <span class="thumb"></span>
+        <span class="pinfo">
+          <span class="pname">컬리 퍼플 박스 미니 <span class="tag">보냉백</span></span>
+          <span class="price">
+            <span class="was">12,000원</span>
+            <span class="off">50%</span>
+            <span class="now">6,000원</span>
+          </span>
+        </span>
+      </div>
+      <div class="hint">※ 배송 받은 다음 주문부터 사용할 수 있어요</div>
+    </div>
+
+    <div class="sec thin">
+      <div class="sec-head"><span>주문상품</span><span class="chev">⌄</span></div>
+      <div class="goods">[KF365] 깐마늘 200g 외 4건</div>
+    </div>
+  </div>
+
+  <div class="snack" id="snack">퍼플 박스가 추가되었습니다.</div>
+
+  <div class="cta-wrap">
+    <button class="cta" id="cta">34,210원 결제하기</button>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<div class="notes">
+  <b>프로토타입 안내</b>
+  <ul>
+    <li>체크 시 <b>담는 중 → 완료 → 스낵바 → 결제금액 변경</b> 순서로 동작합니다</li>
+    <li>담는 중에는 <b>딤 처리 없이</b> 로딩만 노출됩니다</li>
+    <li>제품 이미지는 임시로 그린 것이며, 실제 촬영 이미지로 교체가 필요합니다</li>
+    <li>금액 6,000원은 시안 기준 임시값입니다</li>
+  </ul>
+</div>
+
+<script>
+  const BASE = 34210, BOX = 6000;
+  const won = n => n.toLocaleString('ko-KR') + '원 결제하기';
+
+  const cb = document.getElementById('cb');
+  const card = document.getElementById('card');
+  const cta = document.getElementById('cta');
+  const snack = document.getElementById('snack');
+  const loading = document.getElementById('loading');
+  const caseA = document.getElementById('caseA');
+  const caseB = document.getElementById('caseB');
+  const tabA = document.getElementById('tabA');
+  const tabB = document.getElementById('tabB');
+
+  let added = false, busy = false, snackTimer = null;
+
+  function setCase(which){
+    const isA = which === 'A';
+    caseA.style.display = isA ? '' : 'none';
+    caseB.style.display = isA ? 'none' : '';
+    tabA.classList.toggle('on', isA);
+    tabB.classList.toggle('on', !isA);
+    reset();
+  }
+
+  function reset(){
+    added = false; busy = false;
+    clearTimeout(snackTimer);
+    cb.classList.remove('on');
+    card.classList.remove('sel');
+    card.style.display = '';
+    loading.style.display = 'none';
+    snack.classList.remove('show');
+    cta.textContent = won(BASE);
+  }
+
+  function toggle(){
+    if (busy) return;
+
+    if (added) {            // 빼기
+      added = false;
+      cb.classList.remove('on');
+      card.classList.remove('sel');
+      cta.textContent = won(BASE);
+      snack.classList.remove('show');
+      return;
+    }
+
+    busy = true;            // 담는 중
+    card.style.display = 'none';
+    loading.style.display = '';
+
+    setTimeout(() => {
+      loading.style.display = 'none';
+      card.style.display = '';
+      cb.classList.add('on');
+      card.classList.add('sel');
+      cta.textContent = won(BASE + BOX);
+      added = true; busy = false;
+
+      snack.classList.add('show');
+      clearTimeout(snackTimer);
+      snackTimer = setTimeout(() => snack.classList.remove('show'), 2200);
+    }, 750);
+  }
+
+  cb.addEventListener('click', toggle);
+  card.addEventListener('click', e => { if (e.target !== cb) toggle(); });
+  tabA.addEventListener('click', () => setCase('A'));
+  tabB.addEventListener('click', () => setCase('B'));
+  document.getElementById('reset').addEventListener('click', reset);
+
+  // 포장방법 라디오 (케이스 B만 선택 가능)
+  caseB.querySelectorAll('.opt').forEach(o => {
+    o.addEventListener('click', () => {
+      caseB.querySelectorAll('.opt').forEach(x => x.classList.remove('on'));
+      o.classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>
